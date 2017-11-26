@@ -25,7 +25,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-MILECONVERSION = 0.44704 # meter per seconds
+ONE_MPH = 0.44704 # meter per seconds
 
 
 class WaypointUpdater(object):
@@ -61,7 +61,7 @@ class WaypointUpdater(object):
         self.cycleTimeUpdater = 0.1
 
         # Maximum allowed velocity
-        self.max_velocity = 10.0 * MILECONVERSION
+        self.max_velocity = 10.0 * ONE_MPH
 
         # Minimum distance to the waypoint ahead
         self.min_distance_ahead = self.max_velocity * self.cycleTimeUpdater
