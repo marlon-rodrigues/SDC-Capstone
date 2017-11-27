@@ -61,7 +61,7 @@ class WaypointUpdater(object):
         self.cycleTimeUpdater = 0.1
 
         # Maximum allowed velocity
-        self.max_velocity = 10.0 * ONE_MPH
+        self.max_velocity = 20.0 * ONE_MPH # the slower the better
 
         # Minimum distance to the waypoint ahead
         self.min_distance_ahead = self.max_velocity * self.cycleTimeUpdater

@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import rospy
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float64 
 from dbw_mkz_msgs.msg import ThrottleCmd, SteeringCmd, BrakeCmd, SteeringReport
 from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import PoseStamped
 import math
 
 from twist_controller import Controller
@@ -45,6 +46,7 @@ class DBWNode(object):
         steer_ratio = rospy.get_param('~steer_ratio', 14.8)
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
+        vehicle_total_mass = vehicle_mass + 25.0 + 70.0 + 30.0 # additional weight (gas, passenger, load)
 
         self.steer_pub = rospy.Publisher('/vehicle/steering_cmd',
                                          SteeringCmd, queue_size=1)
@@ -56,7 +58,24 @@ class DBWNode(object):
         # TODO: Create `TwistController` object
         # self.controller = TwistController(<Arguments you wish to provide>)
 
+        # TwistController
+        # def __init__(self, wheel_base, steer_ratio, max_lat_accel, 
+        #              max_steer_angle, decel_limit, accel_limit, vehicle_total_mass, 
+        #              brake_deadband, wheel_radius):
+        self.controller = Controller(wheel_base, steer_ratio, max_lat_accel, 
+                                     max_steer_angle, decel_limit, accel_limit, vehicle_total_mass, 
+                                     brake_deadband, wheel_radius)
+
+        self.curr_velocity = None
+        self.target_velocity = None
+        self.dbw_enabled = True # as described in the top section, it can be disabled if car is driven by human
+        self.pose = None
+
         # TODO: Subscribe to all the topics you need to
+        rospy.Subscriber("/current_velocity", TwistStamped, self.velocity_cb)
+        rospy.Subscriber("/twist_cmd", TwistStamped, self.twist_cb)
+        rospy.Subscriber("/vehicle/dbw_enabled", Bool, self.dbw_cb)
+        rospy.Subscriber("/current_pose", PoseStamped, self.pose_cb)
 
         self.loop()
 
@@ -72,7 +91,46 @@ class DBWNode(object):
             #                                                     <any other argument you need>)
             # if <dbw is enabled>:
             #   self.publish(throttle, brake, steer)
+
+            if not self.curr_velocity:
+                rospy.logwarn('no current velocity has been set')
+                rate.sleep()
+                continue
+
+            if not self.target_velocity:
+                rospy.logwarn('no target velocity has been set')
+                rate.sleep()
+                continue
+
+            if not self.pose:
+                rospy.logwarn('no pose has been set')
+                rate.sleep()
+                continue
+
+            if not self.dbw_enabled:
+                rospy.logdebug('no driving by wire - human in control')
+                # Reset PID controller
+                self.controller.reset()
+                rate.sleep()
+                continue
+
+            throttle, brake, steer = self.controller.control(self.curr_velocity.linear.x, self.target_velocity.linear.x, self.target_velocity.angular.z)
+            self.publish(throttle, brake, steer)
+
             rate.sleep()
+
+    def velocity_cb(self, msg):
+        self.curr_velocity = msg.twist
+
+    def twist_cb(self, msg):
+        self.target_velocity = msg.twist
+
+    def dbw_cb(self, msg):
+        self.dbw_enabled = msg.data
+        rospy.loginfo('received dbw_enabled %s', str(msg.data))
+
+    def pose_cb(self, msg):
+        self.pose = msg.pose
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()
