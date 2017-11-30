@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -21,6 +22,11 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
+        self.prev_distance = None
+        self.prev_pos = None
+        self.capture = False
+        self.current_state = -1
+        self.idx = 0
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -57,9 +63,51 @@ class TLDetector(object):
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
 
+
     def traffic_cb(self, msg):
+
+        dl = lambda a, b: np.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
+
+        #roslaunch launch/styx.launch
+        states = [item.state for item in msg.lights]
+        positions = [item.pose.pose.position for item in msg.lights]
+
+        car_pos = self.pose.pose.position
+
+        distances = [ dl(p, car_pos) for p in positions ]
+        nearest  = np.argmin( distances )
+
+        distance = distances[nearest]
+
+        if not self.prev_distance:
+            self.prev_distance = distance
+
+
+        d_diff =  distance  - self.prev_distance
+        self.prev_distance = distance
+
+        if (d_diff < 0) and (distance < 300):
+            self.capture = True
+            self.current_state = states[nearest]
+            rospy.logwarn( "approaching traffic light  with state %s " % states[nearest])
+        else:
+            self.current_state = states[nearest]
+            self.capture = False
+
+
+
+
+        #cur_pos = "%s %s %s" % (car_pos.x, car_pos.y, car_pos.z)
+        #rospy.logwarn( "pose: %s " % cur_pos )
+        #rospy.logwarn( "nearest position :%s, distance %d " % ( nearest, distances[nearest] ))
+        #rospy.logwarn( "traffic cb: %s " % str(states[nearest]) )
+
+
         self.lights = msg.lights
 
+
+
+    import scipy.misc
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
             of the waypoint closest to the red light's stop line to /traffic_waypoint
@@ -71,6 +119,17 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
+
+
+        if self.has_image and self.capture:
+            img = np.array(self.camera_image)
+
+            cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+            im_path = "/home/student/catkin_ws/src/SDC-Capstone/ros/images/outfile_%s_%s.jpg" % (self.idx, self.current_state)
+            cv2.imwrite(im_path, cv_image)
+            self.idx+=1
+
+
 
         '''
         Publish upcoming red lights at camera frequency.
