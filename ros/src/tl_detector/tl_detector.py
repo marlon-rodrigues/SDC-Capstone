@@ -31,6 +31,15 @@ class TLDetector(object):
         self.current_state = -1
         self.idx = 0
 
+        self.next_light_pos = None
+        self.prev_min_dist = None
+
+        self.state = TrafficLight.UNKNOWN
+        self.last_state = TrafficLight.UNKNOWN
+        self.last_wp = -1
+        self.state_count = 0
+
+
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
@@ -53,13 +62,7 @@ class TLDetector(object):
         self.light_classifier = TLClassifier()
         self.listener = tf.TransformListener()
 
-        self.state = TrafficLight.UNKNOWN
-        self.last_state = TrafficLight.UNKNOWN
-        self.last_wp = -1
-        self.state_count = 0
 
-        self.next_light_pos = None
-        self.prev_min_dist = None
 
 
         rospy.logwarn( "config: => %s" % self.config)
@@ -101,7 +104,7 @@ class TLDetector(object):
             self.next_light_pos = None
 
 
-        rospy.logwarn( "delta = %s, next_light = %s" % ( delta_dist, self.next_light_pos) )
+        #rospy.logwarn( "delta = %s, next_light = %s" % ( delta_dist, self.next_light_pos) )
 
         self.prev_min_dist  = min_dist
 
@@ -233,7 +236,7 @@ class TLDetector(object):
 
         """
         if(not self.has_image):
-            self.prev_light_loc = None
+            #self.prev_light_loc = None
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
@@ -260,11 +263,15 @@ class TLDetector(object):
         #TODO find the closest visible traffic light (if one exists)
         #rospy.logwarn("Checking model")
         #light=True
-        if light:
-            state = self.get_light_state(light)
+
+        if self.next_light_pos and self.prev_min_dist < 200:
+            state = self.get_light_state(self.next_light_pos)
+            light_wp = self.next_light_pos
             return light_wp, state
         self.waypoints = None
-        return -1, TrafficLight.UNKNOWN
+
+
+        return car_position, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
     try:
