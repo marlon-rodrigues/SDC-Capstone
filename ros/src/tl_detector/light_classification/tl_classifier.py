@@ -7,6 +7,7 @@ import rospy
 
 import tensorflow as tf
 from keras.models import load_model
+import yaml
 
 
 
@@ -14,13 +15,28 @@ WIDTH  = 64
 HEIGHT = 64
 
 
+light_label = {
+
+    0 : "RED",
+    1 : "YELLOW",
+    2 : "GREEN"
+}
+
 class TLClassifier(object):
 
 
     def __init__(self):
-        self.classifier = load_model("/home/student/catkin_ws/src/SDC-Capstone/ros/model/model_1.hd5")
+
+        config_string = rospy.get_param("/traffic_light_config")
+        config = yaml.load(config_string)
+        model_path = config["model_path"]
+        rospy.logwarn( "Loading error model %s" % model_path)
+
+        self.classifier = load_model(model_path)
         self.classifier._make_predict_function()
         self.graph = tf.get_default_graph()
+
+
 
     def get_classification(self, image):
 
@@ -40,7 +56,8 @@ class TLClassifier(object):
         with self.graph.as_default():
             ret = self.classifier.predict(new_img)
             tl = np.argmax(ret)
-            rospy.logwarn( "Image classified as {}".format(tl))
+
+            rospy.loginfo( "Trafic Light Classified as {}".format( light_label[tl] ))
             if tl==0:
                 retval= TrafficLight.RED
             elif tl==1:

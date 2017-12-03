@@ -110,8 +110,6 @@ class TLDetector(object):
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
-        self.capture = False
-        return
 
 
         #roslaunch launch/styx.launch
@@ -129,17 +127,9 @@ class TLDetector(object):
             self.prev_distance = distance
 
 
-        d_diff =  distance  - self.prev_distance
-        self.prev_distance = distance
-
-        if (d_diff < 0) and (distance < 300):
+        if self.nearest_traffic_light:
             self.capture = True
             self.current_state = states[nearest]
-            rospy.logwarn( "capturing for state %s " % states[nearest])
-        elif (d_diff>0) and (distance > 100):
-            rospy.logwarn( "capturing 'unkown'" )
-            self.current_state = 4 #states[nearest]
-            self.capture = True
         else:
             self.capture = False
 
@@ -168,14 +158,21 @@ class TLDetector(object):
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
 
+        """
+        enable only for image capturing
+        """
+        if False: #self.has_image and self.capture and (self.next_light_pos is not None):
 
-        if False: #self.has_image and self.capture:
-            img = np.array(self.camera_image)
+            if self.prev_min_dist < 200:
 
-            cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-            im_path = "/home/student/catkin_ws/src/SDC-Capstone/ros/img2/train_%s_%s.jpg" % (self.idx, self.current_state)
-            cv2.imwrite(im_path, cv_image)
-            self.idx+=1
+                rospy.loginfo( "capturing for state %s " % self.current_state)
+                img = np.array(self.camera_image)
+                cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+                im_path = "/home/student/catkin_ws/src/SDC-Capstone/ros/img4/train_%s_%s.jpg" % (self.idx, self.current_state)
+                cv2.imwrite(im_path, cv_image)
+                self.idx+=1
+
+                self.capture = False
 
 
 
@@ -267,7 +264,9 @@ class TLDetector(object):
         if self.next_light_pos and self.prev_min_dist < 200:
             state = self.get_light_state(self.next_light_pos)
             light_wp = self.next_light_pos
-            return light_wp, state
+
+            #TODO: return proper wp
+            return 1, state
         self.waypoints = None
 
 
