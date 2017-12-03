@@ -10,8 +10,12 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import numpy as np
+import scipy.misc
 
 STATE_COUNT_THRESHOLD = 3
+
+dl = lambda a, b: np.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
 
 class TLDetector(object):
     def __init__(self):
@@ -21,6 +25,20 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
+        self.prev_distance = None
+        self.prev_pos = None
+        self.capture = False
+        self.current_state = -1
+        self.idx = 0
+
+        self.next_light_pos = None
+        self.prev_min_dist = None
+
+        self.state = TrafficLight.UNKNOWN
+        self.last_state = TrafficLight.UNKNOWN
+        self.last_wp = -1
+        self.state_count = 0
+
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -44,21 +62,89 @@ class TLDetector(object):
         self.light_classifier = TLClassifier()
         self.listener = tf.TransformListener()
 
-        self.state = TrafficLight.UNKNOWN
-        self.last_state = TrafficLight.UNKNOWN
-        self.last_wp = -1
-        self.state_count = 0
+
+
+
+        rospy.logwarn( "config: => %s" % self.config)
+
 
         rospy.spin()
 
     def pose_cb(self, msg):
         self.pose = msg
 
+        self.nearest_traffic_light()
+
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
 
+    def nearest_traffic_light(self):
+
+        eucdist = lambda x1,y1, x2, y2: np.sqrt( (x1 - x2)**2 + (y1-y2)**2)
+
+        min_dist = np.inf
+        min_loc = None
+        pose = self.pose.pose.position
+
+        for x,y in self.config["stop_line_positions"]:
+            dist = eucdist( x, y, pose.x, pose.y)
+            if dist<min_dist:
+                min_dist = dist
+                min_loc = (x,y)
+
+        if (self.next_light_pos is None) and (self.prev_min_dist is None):
+            self.next_light_pos = min_loc
+            self.prev_min_dist = min_dist
+
+
+        delta_dist = min_dist - self.prev_min_dist
+        if delta_dist < 0:
+            self.next_light_pos  = min_loc
+        else:
+            self.next_light_pos = None
+
+
+        #rospy.logwarn( "delta = %s, next_light = %s" % ( delta_dist, self.next_light_pos) )
+
+        self.prev_min_dist  = min_dist
+
     def traffic_cb(self, msg):
         self.lights = msg.lights
+
+
+        #roslaunch launch/styx.launch
+        states = [item.state for item in msg.lights]
+        positions = [item.pose.pose.position for item in msg.lights]
+
+        car_pos = self.pose.pose.position
+
+        distances = [ dl(p, car_pos) for p in positions ]
+        nearest  = np.argmin( distances )
+
+        distance = distances[nearest]
+
+        if not self.prev_distance:
+            self.prev_distance = distance
+
+
+        if self.nearest_traffic_light:
+            self.capture = True
+            self.current_state = states[nearest]
+        else:
+            self.capture = False
+
+
+
+        #cur_pos = "%s %s %s" % (car_pos.x, car_pos.y, car_pos.z)
+        #rospy.logwarn( "pose: %s " % cur_pos )
+        #rospy.logwarn( "nearest position :%s, distance %d " % ( nearest, distances[nearest] ))
+        #rospy.logwarn( "traffic cb: %s " % str(states[nearest]) )
+
+
+        self.lights = msg.lights
+
+
+
 
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
@@ -71,6 +157,24 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
+
+        """
+        enable only for image capturing
+        """
+        if False: #self.has_image and self.capture and (self.next_light_pos is not None):
+
+            if self.prev_min_dist < 200:
+
+                rospy.loginfo( "capturing for state %s " % self.current_state)
+                img = np.array(self.camera_image)
+                cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+                im_path = "/home/student/catkin_ws/src/SDC-Capstone/ros/img4/train_%s_%s.jpg" % (self.idx, self.current_state)
+                cv2.imwrite(im_path, cv_image)
+                self.idx+=1
+
+                self.capture = False
+
+
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -100,8 +204,23 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
         return 0
+        if not self.waypoints:
+            #rospy.logwarn("no waypoints")
+            return 0
+
+        pose = self.pose.pose.position
+
+        distances = []
+        for wp in self.waypoints.waypoints:
+            wpos = wp.pose.pose.position
+            dist = dl( pose, wpos )
+            distances.append( dist )
+
+        min_dist = np.argmin(distances)
+        rospy.logwarn( "min dist idx is %s" % min_dist )
+
+        return min_dist
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -114,7 +233,7 @@ class TLDetector(object):
 
         """
         if(not self.has_image):
-            self.prev_light_loc = None
+            #self.prev_light_loc = None
             return False
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
@@ -139,12 +258,19 @@ class TLDetector(object):
             car_position = self.get_closest_waypoint(self.pose.pose)
 
         #TODO find the closest visible traffic light (if one exists)
+        #rospy.logwarn("Checking model")
+        #light=True
 
-        if light:
-            state = self.get_light_state(light)
-            return light_wp, state
+        if self.next_light_pos and self.prev_min_dist < 200:
+            state = self.get_light_state(self.next_light_pos)
+            light_wp = self.next_light_pos
+
+            #TODO: return proper wp
+            return 1, state
         self.waypoints = None
-        return -1, TrafficLight.UNKNOWN
+
+
+        return car_position, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
     try:
