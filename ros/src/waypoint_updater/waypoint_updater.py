@@ -166,7 +166,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         if msg.data>0:
-            rospy.logwarn("traffic_cb : {}".format(msg.data))
+            rospy.logwarn("tl wp  = {}".format(msg.data))
 
 
     def obstacle_cb(self, msg):
