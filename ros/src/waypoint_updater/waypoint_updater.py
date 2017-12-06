@@ -5,6 +5,8 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import TwistStamped
 from geometry_msgs.msg import Pose
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
+
 
 import tf
 import math
@@ -34,6 +36,7 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
@@ -41,7 +44,7 @@ class WaypointUpdater(object):
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         # TODO: Add other member variables you need below
-        
+
         # Current pose of the vehicle
         self.pose = None
 
@@ -113,7 +116,7 @@ class WaypointUpdater(object):
             if target_velocity > 4.0:
                 target_velocity = self.max_velocity
 
-            # make sure target velocity is within bounds 
+            # make sure target velocity is within bounds
             target_velocity = min(max(0, target_velocity), self.max_velocity)
 
             # store previous target velocity
@@ -127,7 +130,7 @@ class WaypointUpdater(object):
         self.final_waypoints_pub.publish(lane)
 
         #vd = self.get_waypoint_velocity(self.waypoints[begin])
-            
+
     def get_nearest_waypoint(self):
         # get the pose of the vehicle
         curr_x = self.pose.position.x
@@ -141,7 +144,7 @@ class WaypointUpdater(object):
             # compute the euclidian distance of the waypoint from the current pose of the vehicle
             waypoint_x = self.waypoints[waypoint_idx].pose.pose.position.x
             waypoint_y = self.waypoints[waypoint_idx].pose.pose.position.y
-            waypoint_ahead = ((waypoint_x - curr_x) * math.cos(curr_t) + 
+            waypoint_ahead = ((waypoint_x - curr_x) * math.cos(curr_t) +
                               (waypoint_y - curr_y) * math.sin(curr_t)) > self.min_distance_ahead
 
             if not waypoint_ahead:
@@ -162,8 +165,9 @@ class WaypointUpdater(object):
         self.waypoints = waypoints.waypoints
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        if msg.data>0:
+            rospy.logwarn("traffic_cb : {}".format(msg.data))
+
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
