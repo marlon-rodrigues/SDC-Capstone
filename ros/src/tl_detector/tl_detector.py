@@ -14,8 +14,6 @@ import cv2
 from datetime import datetime
 
 
-dl = lambda a, b: np.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
-
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
@@ -64,8 +62,6 @@ class TLDetector(object):
     def pose_cb(self, msg):
         self.pose = msg
 
-        self.nearest_traffic_light()
-
     def waypoints_cb(self, waypoints):
         self.waypoints = waypoints
 
@@ -87,41 +83,6 @@ class TLDetector(object):
     def traffic_cb(self, msg):
         self.lights = msg.lights
 
-
-        #roslaunch launch/styx.launch
-        states = [item.state for item in msg.lights]
-        positions = [item.pose.pose.position for item in msg.lights]
-
-        car_pos = self.pose.pose.position
-
-        distances = [ dl(p, car_pos) for p in positions ]
-        nearest  = np.argmin( distances )
-
-        distance = distances[nearest]
-
-        if not self.prev_distance:
-            self.prev_distance = distance
-
-
-        if self.nearest_traffic_light:
-            self.capture = True
-            self.current_state = states[nearest]
-        else:
-            self.capture = False
-
-
-
-        #cur_pos = "%s %s %s" % (car_pos.x, car_pos.y, car_pos.z)
-        #rospy.logwarn( "pose: %s " % cur_pos )
-        #rospy.logwarn( "nearest position :%s, distance %d " % ( nearest, distances[nearest] ))
-        #rospy.logwarn( "traffic cb: %s " % str(states[nearest]) )
-
-
-        self.lights = msg.lights
-
-
-
-
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
             of the waypoint closest to the red light's stop line to /traffic_waypoint
@@ -135,24 +96,6 @@ class TLDetector(object):
             return
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
-
-        """
-        enable only for image capturing
-        """
-        if False: #self.has_image and self.capture and (self.next_light_pos is not None):
-
-            if self.prev_min_dist < 200:
-
-                rospy.loginfo( "capturing for state %s " % self.current_state)
-                img = np.array(self.camera_image)
-                cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-                im_path = "/home/student/catkin_ws/src/SDC-Capstone/ros/img4/train_%s_%s.jpg" % (self.idx, self.current_state)
-                cv2.imwrite(im_path, cv_image)
-                self.idx+=1
-
-                self.capture = False
-
-
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -183,7 +126,6 @@ class TLDetector(object):
         Returns:
             int: index of the closest waypoint in self.waypoints
         """
-
         min_distance = 1e8
         closest_waypoint = -1
 
