@@ -168,7 +168,7 @@ class TLDetector(object):
 
         start_time = rospy.get_time()
         state = self.light_classifier.get_classification(cv_image)
-        rospy.loginfo(
+        rospy.logwarn(
             "Classified new image: state={} sequence={} in {}s".format(state, self.camera_image.header.seq,
             rospy.get_time() - start_time))
 
