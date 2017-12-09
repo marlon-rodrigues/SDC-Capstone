@@ -84,7 +84,7 @@ class TLDetector(object):
             of the waypoint closest to the red light's stop line to /traffic_waypoint
         Args:
             msg (Image): image from car-mounted camera
-        """     
+        """
         #self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
@@ -165,7 +165,7 @@ class TLDetector(object):
 
         #Get classification
         return self.light_classifier.get_classification(cv_image)
-        
+
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
@@ -196,7 +196,7 @@ class TLDetector(object):
             rospy.logwarn('no classifier initialized')
             return light_wp, traffic_light_state
 
-        
+
         vehicle_wp = self.get_closest_waypoint(self.pose)
         closest_distance = 1e8
 
@@ -217,7 +217,7 @@ class TLDetector(object):
                 light_wp = stop_line_wp
 
         if light_wp != -1:
-            if closest_distance < 100:
+            if closest_distance < 300:
                 traffic_light_state = self.get_light_state(light_wp)
 
             rospy.logdebug("Traffic Light Ahead: waypoint={} state={} distance={}".format(light_wp, traffic_light_state, closest_distance))
