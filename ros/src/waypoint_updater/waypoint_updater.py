@@ -36,10 +36,9 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
-
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
+        rospy.Subscriber('/obstacle_waypoint', PoseStamped, self.obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
@@ -60,6 +59,9 @@ class WaypointUpdater(object):
         # First waypoint ahead
         self.next_waypoint_id = None
 
+        # ID of red light waypoint
+        self.red_light_waypoint = -1
+
         # Cycle time for the waypoint updater
         self.cycleTimeUpdater = 0.1
 
@@ -68,6 +70,12 @@ class WaypointUpdater(object):
 
         # Minimum distance to the waypoint ahead
         self.min_distance_ahead = self.max_velocity * self.cycleTimeUpdater
+
+        # Distance to traffic light waypoint
+        self.stop_distance_to_traffic_light = 7.0
+
+        # Distance from the stop point where the car starts to decelerate
+        self.decelerating_distance = self.max_velocity * 10
 
         rospy.Timer(rospy.Duration(self.cycleTimeUpdater), self.process_waypoints)
 
@@ -78,9 +86,9 @@ class WaypointUpdater(object):
             rospy.logwarn('no pose has been set')
             return None
 
-        #if not self.current_velocity:
-        #    rospy.logwarn('no velocity has been set')
-        #    return None
+        if not self.current_velocity:
+            rospy.logwarn('no velocity has been set')
+            return None
 
         if not self.waypoints:
             rospy.logwarn('no waypoints has been set')
@@ -90,15 +98,42 @@ class WaypointUpdater(object):
         begin = self.get_nearest_waypoint()
         end = begin + LOOKAHEAD_WPS
         end = min(end, len(self.waypoints))
-        rospy.logdebug("begin {}, end {}, waypoints len {}".format(begin, end, len(self.waypoints)))
+        rospy.loginfo("begin {}, end {}, waypoints len {}".format(begin, end, len(self.waypoints)))
 
         waypointsArr = []
         epsilon = 1.0
+        distance_to_red_light = 0
+        distance_to_stop = 0
         velocity = 0
         previous_target_velocity = 0
 
         for i in range(begin, end):
             target_velocity = self.max_velocity
+
+            if self.red_light_waypoint > 0:
+                distance_to_red_light = self.distance(self.waypoints, i, self.red_light_waypoint)
+                distance_to_stop = max(0, distance_to_red_light - self.stop_distance_to_traffic_light)
+                velocity = self.get_waypoint_velocity(self.waypoints[i])
+
+                # slow down getting closer to intersection
+                if distance_to_stop > 0 and distance_to_stop < self.decelerating_distance:
+                    target_velocity *= distance_to_red_light / self.decelerating_distance
+
+                # push down the brakes a bit harder on the second half
+                if distance_to_stop > 0 and distance_to_stop < self.decelerating_distance * 0.5:
+                    target_velocity *= distance_to_stop / self.decelerating_distance
+
+                # keep a minimim target velocity
+                target_velocity = max(2.0, target_velocity)
+
+                # perform the brake motion
+                if distance_to_stop > 0.5 and distance_to_stop <= 2:
+                    target_velocity = 1.0
+                if distance_to_stop > 0 and distance_to_stop <= 0.5:
+                    target_velocity = 0.33
+                elif distance_to_stop == 0:
+                    target_velocity = 0.0
+
 
             # accelerate smoothly
             start_waypoint_velocity = self.get_waypoint_velocity(self.waypoints[begin])
@@ -122,14 +157,17 @@ class WaypointUpdater(object):
             # store previous target velocity
             previous_target_velocity = target_velocity
 
+            rospy.loginfo("waypoint {}, decelerating distance {}, distance to red light {}, "
+                          "distance to stop {}, velocity {}, target velocity {}".format(
+                          i, self.decelerating_distance, distance_to_red_light,
+                          distance_to_stop, velocity, target_velocity))
+
             self.set_waypoint_velocity(self.waypoints, i, target_velocity)
             waypointsArr.append(self.waypoints[i])
 
         lane = Lane()
         lane.waypoints = waypointsArr
         self.final_waypoints_pub.publish(lane)
-
-        #vd = self.get_waypoint_velocity(self.waypoints[begin])
 
     def get_nearest_waypoint(self):
         # get the pose of the vehicle
@@ -165,13 +203,15 @@ class WaypointUpdater(object):
         self.waypoints = waypoints.waypoints
 
     def traffic_cb(self, msg):
-        if msg.data>0:
-            rospy.logwarn("traffic_cb : {}".format(msg.data))
-
+        rospy.logwarn("traffic_cb : {}".format(msg.data))
+        self.red_light_waypoint = msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
+
+    def velocity_cb(self, msg):        
+        self.current_velocity = msg.twist
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
