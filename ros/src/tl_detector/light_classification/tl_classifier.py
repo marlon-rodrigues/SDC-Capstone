@@ -57,7 +57,7 @@ class TLClassifier(object):
             ret = self.classifier.predict(new_img)
             tl = np.argmax(ret)
 
-            rospy.loginfo( "Trafic Light Classified as {}".format( light_label[tl] ))
+            rospy.logwarn( "Trafic Light Classified as {}".format( light_label[tl] ))
             if tl==0:
                 retval= TrafficLight.RED
             elif tl==1:
@@ -66,6 +66,5 @@ class TLClassifier(object):
                 retval = TrafficLight.GREEN
             else:
                 retval = TrafficLight.UNKNOWN
-
 
         return retval
