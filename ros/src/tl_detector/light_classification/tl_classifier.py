@@ -67,5 +67,4 @@ class TLClassifier(object):
             else:
                 retval = TrafficLight.UNKNOWN
 
-
         return retval
