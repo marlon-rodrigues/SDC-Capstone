@@ -229,7 +229,6 @@ class TLDetector(object):
         if light_wp != -1:
             if closest_distance < 100:
                 traffic_light_state = self.get_light_state(light_wp)
-
             rospy.loginfo("Traffic Light Ahead: wp={} state={} distance={}".format(light_wp, traffic_light_state, closest_distance))
 
         return light_wp, traffic_light_state

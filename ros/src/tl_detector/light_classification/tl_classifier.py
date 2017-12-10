@@ -11,7 +11,7 @@ import yaml
 
 
 
-WIDTH  = 64
+WIDTH  = 86
 HEIGHT = 64
 
 
@@ -51,7 +51,7 @@ class TLClassifier(object):
         """
         #rospy.logwarn( "get get_classification")
         #return TrafficLight.UNKNOWN
-        new_img = cv2.resize( image , (WIDTH, HEIGHT) ).reshape( 1, WIDTH, HEIGHT, 3)
+        new_img = cv2.resize( image , (WIDTH, HEIGHT) ).reshape( 1,  HEIGHT, WIDTH, 3)
         retval = TrafficLight.UNKNOWN
         with self.graph.as_default():
             ret = self.classifier.predict(new_img)
