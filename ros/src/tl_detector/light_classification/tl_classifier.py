@@ -11,10 +11,6 @@ import yaml
 
 
 
-WIDTH  = 86
-HEIGHT = 64
-
-
 light_label = {
 
     0 : "RED",
@@ -30,6 +26,10 @@ class TLClassifier(object):
         config_string = rospy.get_param("/traffic_light_config")
         config = yaml.load(config_string)
         model_path = config["model_path"]
+        self.model_width = config["model_width"]
+        self.model_height = config["model_height"]
+
+
         rospy.logwarn( "Loading error model %s" % model_path)
 
         self.classifier = load_model(model_path)
@@ -51,7 +51,7 @@ class TLClassifier(object):
         """
         #rospy.logwarn( "get get_classification")
         #return TrafficLight.UNKNOWN
-        new_img = cv2.resize( image , (WIDTH, HEIGHT) ).reshape( 1,  HEIGHT, WIDTH, 3)
+        new_img = cv2.resize( image , (self.model_width, self.model_height) ).reshape( 1, self.model_height, self.model_width, 3)
         retval = TrafficLight.UNKNOWN
         with self.graph.as_default():
             ret = self.classifier.predict(new_img)
