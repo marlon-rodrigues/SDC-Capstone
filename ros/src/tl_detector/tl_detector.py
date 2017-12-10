@@ -156,10 +156,13 @@ class TLDetector(object):
 
     def get_light_state(self, light_wp):
         """Determines the current color of the traffic light
+
         Args:
             light (TrafficLight): light to classify
+
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
+
         """
         # cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "rgb8")
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
@@ -174,13 +177,17 @@ class TLDetector(object):
 
         return state
 
+
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
             location and color
+
         Returns:
             int: index of waypoint closes to the upcoming stop line for a traffic light (-1 if none exists)
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
+
         """
+
         light_wp = -1
         traffic_light_state = TrafficLight.UNKNOWN
 
@@ -222,7 +229,6 @@ class TLDetector(object):
         if light_wp != -1:
             if closest_distance < 100:
                 traffic_light_state = self.get_light_state(light_wp)
-                
             rospy.loginfo("Traffic Light Ahead: wp={} state={} distance={}".format(light_wp, traffic_light_state, closest_distance))
 
         return light_wp, traffic_light_state

@@ -36,7 +36,7 @@ class WaypointUpdater(object):
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        #rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
@@ -166,7 +166,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         if msg.data>0:
-            rospy.logwarn("traffic_cb : {}".format(msg.data))
+            rospy.logwarn("tl wp  = {}".format(msg.data))
 
 
     def obstacle_cb(self, msg):
