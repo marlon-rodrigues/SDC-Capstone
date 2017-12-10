@@ -21,6 +21,7 @@ light_label = {
 class TLClassifier(object):
 
 
+
     def __init__(self):
 
         config_string = rospy.get_param("/traffic_light_config")
@@ -49,14 +50,16 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        #rospy.logwarn( "get get_classification")
-        #return TrafficLight.UNKNOWN
+
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         new_img = cv2.resize( image , (self.model_width, self.model_height) ).reshape( 1, self.model_height, self.model_width, 3)
+        new_img = new_img.astype('float32')
+        new_img /= 255
         retval = TrafficLight.UNKNOWN
+
         with self.graph.as_default():
             ret = self.classifier.predict(new_img)
             tl = np.argmax(ret)
-
             rospy.logwarn( "Trafic Light Classified as {}".format( light_label[tl] ))
             if tl==0:
                 retval= TrafficLight.RED
