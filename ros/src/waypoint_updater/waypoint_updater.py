@@ -124,7 +124,7 @@ class WaypointUpdater(object):
                 if distance_to_stop > 0 and distance_to_stop < self.decelerating_distance * 0.5:
                     target_velocity *= distance_to_stop / self.decelerating_distance
 
-                # keep a minimim target velocity
+                # keep a minimum target velocity
                 target_velocity = max(2.0, target_velocity)
 
                 # perform the brake motion
@@ -204,7 +204,7 @@ class WaypointUpdater(object):
         self.waypoints = waypoints.waypoints
 
     def traffic_cb(self, msg):
-        rospy.logwarn("traffic_cb : {}".format(msg.data))
+        #rospy.logwarn("traffic_cb : {}".format(msg.data))
         self.red_light_waypoint = msg.data
 
     def obstacle_cb(self, msg):
