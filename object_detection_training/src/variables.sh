@@ -4,4 +4,4 @@
 SDC_WORKING_DIR=/home/ubuntu/SDC/tl_detector
 
 # Saving to .bashrc to make this variable non-volatile
-echo $SDC_WORKING_DIR >> ~/.bashrc
+echo SDC_WORKING_DIR=$SDC_WORKING_DIR >> ~/.bashrc

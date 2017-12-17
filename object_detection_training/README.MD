@@ -1,11 +1,11 @@
 + Make all shell scripts executable:
 
-Go to your working folder (`/object_detection/`) and then execute
-`chmod + x ./src/*.sh`
+Go to your working folder (`/object_detection_training/`) and then execute
+`chmod +x ./src/*.sh`
 
-+ Configure your working folder editing `/src/start_here.sh`
++ Configure your working folder by editing `/src/start_here.sh`
 
-+ Setup variables, make folders and download training stuff by executing:
++ Setup variables, make folders and download training stuff by executing from your working folder:
 `. /src/start_here.sh`
 
 

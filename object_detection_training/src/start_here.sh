@@ -12,5 +12,5 @@ source ./src/variables.sh
 ./src/download_training_data.sh
 
 # download Tensorflow object detection API
-git clone https://github.com/tensorflow/models.git $SDC_WORKING_DIR/external_repo
+git clone https://github.com/tensorflow/models.git $SDC_WORKING_DIR/external_repo/models
 
