@@ -15,7 +15,8 @@ When reaching to section *"Add Libraries to PYTHONPATH"* I really encourage to s
 
 + Edit *config/ssd_mobilenet_v1_coco_simulator.config* and replace *"/home/ubuntu/SDC/tl_detector/"* with the returned value of executing `echo $SDC_WORKING_DIR`
 
-+ Create and activate an environment with the provided `requirements.txt`
++ Create and activate an environment with the provided `requirements.txt`. 
+Note: if you want to use a GPU, replace `tensorflow` by `tensorflow-gpu` in `requirements.txt` before creating the environment.
 
 + Execute training:
 `./src/execute_training.sh`
