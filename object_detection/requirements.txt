@@ -1,9 +1,0 @@
-numpy
-Pillow
-scipy
-keras
-tensorflow
-h5py
-lxml
-jupyter
-matplotlib
