@@ -13,7 +13,7 @@ The System Integration project is the final project of the Udacity Self-Driving 
   -  Mario Capin (Team Member 1) mario_capin@hotmail.com
   -  Ricardo Guerrero (Team Member 2) ricgu8086@gmail.com
   -  Kofi Baafi (Team Member 3) kbaafi@gmail.com
-  -  Kostas Perifanos (Team Member 4) Kostas.perifanos@gmail.com
+  -  Kostas Perifanos (Team Member 4) kostas.perifanos@gmail.com
 
 
 # Software Architecture
@@ -23,45 +23,61 @@ The following is a system architecture diagram showing the ROS nodes and topics 
 ![alt text](./writeup_img/architecture.png "Architecture")
 
 ## Code Structure 
-Below is a brief overview of the repo structure, along with descriptions of the ROS nodes. The code that we needed to modify for the project is contained entirely within the (path_to_project_repo)/ros/src/ directory. Within this directory, there are the following ROS packages:
-(path_to_project_repo)/ros/src/tl_detector/
-This package contains the traffic light detection node: tl_detector.py. This node takes in data from the /image_color, /current_pose, and /base_waypoints topics and publishes the locations to stop for red traffic lights to the /traffic_waypoint topic.
-The /current_pose topic provides the vehicle's current position, and /base_waypoints provides a complete list of waypoints the car will be following.
-There has to be built both a traffic light detection node and a traffic light classification node. Traffic light detection take place within tl_detector.py, whereas traffic light classification take place within ../tl_detector/light_classification_model/tl_classfier.py.
+
+
+Below is a brief overview of the repo structure, along with descriptions of the ROS nodes. The code that we needed to modify for the project is contained entirely within the  ```(path_to_project_repo)/ros/src/``` directory. Within this directory, there are the following ROS packages:
+
+
+```(path_to_project_repo)/ros/src/tl_detector/```
+
+This package contains the traffic light detection node: tl_detector.py. This node takes in data from the ```/image_color```, ```/current_pose```, and ```/base_waypoints``` topics and publishes the locations to stop for red traffic lights to the ```/traffic_waypoint``` topic.
+
+The ```/current_pose``` topic provides the vehicle's current position, and ```/base_waypoints``` provides a complete list of waypoints the car will be following.
+There has to be built both a traffic light detection node and a traffic light classification node. Traffic light detection take place within tl_detector.py, whereas traffic light classification take place within ```../tl_detector/light_classification_model/tl_classfier.py```.
+
 
 
 ![alt text](./writeup_img/traffic_wp.png "Traffic Waypoint")
 
 
-(path_to_project_repo)/ros/src/waypoint_updater/
-This package contains the waypoint updater node: waypoint_updater.py. The purpose of this node is to update the target velocity property of each waypoint based on traffic light and obstacle detection data. This node subscribes to the /base_waypoints, /current_pose, /obstacle_waypoint, and /traffic_waypoint topics, and publish a list of waypoints ahead of the car with target velocities to the /final_waypoints topic.
+
+```(path_to_project_repo)/ros/src/waypoint_updater/```
+
+
+This package contains the waypoint updater node: waypoint_updater.py. The purpose of this node is to update the target velocity property of each waypoint based on traffic light and obstacle detection data. This node subscribes to the ```/base_waypoints```, ```/current_pose```, ```/obstacle_waypoint```, and ```/traffic_waypoint``` topics, and publish a list of waypoints ahead of the car with target velocities to the /final_waypoints topic.
 
 ![alt text](./writeup_img/final_wp.png "Final Waypoints")
 
-(path_to_project_repo)/ros/src/twist_controller/
-Carla is equipped with a drive-by-wire (dbw) system, meaning the throttle, brake, and steering have electronic control. This package contains the files that are responsible for control of the vehicle: the node dbw_node.py and the file twist_controller.py, along with a pid and lowpass filter that can be used in the implementation. The dbw_nodesubscribes to the /current_velocity topic along with the /twist_cmd topic to receive target linear and angular velocities. Additionally, this node subscribes to /vehicle/dbw_enabled, which indicates if the car is under dbw or driver control. This node publishes throttle, brake, and steering commands to the /vehicle/throttle_cmd, /vehicle/brake_cmd, and /vehicle/steering_cmd topics.
+```(path_to_project_repo)/ros/src/twist_controller/```
+
+Carla is equipped with a drive-by-wire (dbw) system, meaning the throttle, brake, and steering have electronic control. This package contains the files that are responsible for control of the vehicle: the node dbw_node.py and the file twist_controller.py, along with a pid and lowpass filter that can be used in the implementation. The dbw_nodesubscribes to the ```/current_velocity``` topic along with the ```/twist_cmd``` topic to receive target linear and angular velocities. Additionally, this node subscribes to ```/vehicle/dbw_enabled```, which indicates if the car is under dbw or driver control. This node publishes throttle, brake, and steering commands to the ```/vehicle/throttle_cmd```, ```/vehicle/brake_cmd```, and ```/vehicle/steering_cmd``` topics.
+
+
 
 ![alt text](./writeup_img/dbw_wp.png "DBW Node")
 
 
 In addition to these packages there can be found the following, which are not necessary to change for the project. The styx and styx_msgs packages are used to provide a link between the simulator and ROS, and to provide custom ROS message types:
-- (path_to_project_repo)/ros/src/styx/
+
+- ```(path_to_project_repo)/ros/src/styx/```
 
   A package that contains a server for communicating with the simulator, and a bridge to translate and publish simulator messages to ROS topics.
 
-- (path_to_project_repo)/ros/src/styx_msgs/
+- ```(path_to_project_repo)/ros/src/styx_msgs/```
+
   A package which includes definitions of the custom ROS message types used in the project.
 
-- (path_to_project_repo)/ros/src/waypoint_loader/
+- ```(path_to_project_repo)/ros/src/waypoint_loader/```
 
   A package which loads the static waypoint data and publishes to /base_waypoints.
 
-- (path_to_project_repo)/ros/src/waypoint_follower/
+- ```(path_to_project_repo)/ros/src/waypoint_follower/```
 
-  A package containing code from Autoware which subscribes to /final_waypoints and publishes target vehicle linear and angular velocities in the form of twist commands to the /twist_cmd topic.
+  A package containing code from Autoware which subscribes to ```/final_waypoints``` and publishes target vehicle linear and angular velocities in the form of twist commands to the ```/twist_cmd``` topic.
 
 
 ## Subsystem
+
 The subsystem observes the environment of the vehicle and publishes relevant information to other subsystems. The traffic light detection node determines the state of upcoming traffic lights and publishes information to other subsystems.
 
 ## Traffic Light Detection and Classification
