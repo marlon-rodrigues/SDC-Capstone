@@ -9,6 +9,8 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
   -  Kofi Baafi (Team Member 3) kbaafi@gmail.com
   -  Kostas Perifanos (Team Member 4) kostas.perifanos@gmail.com
 
+  [Project writeup](./writeup.md)
+
 ### Native Installation
 
 * Be sure that your workstation is running Ubuntu 16.04 Xenial Xerus or Ubuntu 14.04 Trusty Tahir. [Ubuntu downloads can be found here](https://www.ubuntu.com/download/desktop).
